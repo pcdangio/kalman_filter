@@ -1,5 +1,5 @@
 /// \file kalman_filter/base.hpp
-/// \brief Defines the kalman_filter::base_t class.
+/// \brief Defines the kalman_filter::base class.
 #ifndef KALMAN_FILTER___BASE_H
 #define KALMAN_FILTER___BASE_H
 
@@ -12,15 +12,15 @@
 namespace kalman_filter {
 
 /// \brief Provides base functionality for all Kalman Filter object types.
-class base_t
+class base
 {
 public:
     // CONSTRUCTORS
-    /// \brief Instantiates a new base_t object.
+    /// \brief Instantiates a new base object.
     /// \param n_variables The number of variables in the state vector.
     /// \param n_observers The number of state observers.
-    base_t(uint32_t n_variables, uint32_t n_observers);
-    ~base_t();
+    base(uint32_t n_variables, uint32_t n_observers);
+    ~base();
 
     // FILTER METHODS
     /// \brief Predicts a new state and performs update corrections with available observations.

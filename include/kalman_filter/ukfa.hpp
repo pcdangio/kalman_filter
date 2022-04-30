@@ -1,5 +1,5 @@
 /// \file kalman_filter/ukfa.hpp
-/// \brief Defines the kalman_filter::ukfa_t class.
+/// \brief Defines the kalman_filter::ukfa class.
 #ifndef KALMAN_FILTER___UKFA_H
 #define KALMAN_FILTER___UKFA_H
 
@@ -9,15 +9,15 @@ namespace kalman_filter {
 
 /// \brief An Unscented Kalman Filter with Augmented state (UKFA).
 /// \details The UKFA can perform nonlinear state estimation with additive AND multiplicative noise.
-class ukfa_t
-    : public base_t
+class ukfa
+    : public base
 {
 public:
     // CONSTRUCTORS
-    /// \brief Instantiates a new ukfa_t object.
+    /// \brief Instantiates a new ukfa object.
     /// \param n_variables The number of variables in the state vector.
     /// \param n_observers The number of state observers.
-    ukfa_t(uint32_t n_variables, uint32_t n_observers);
+    ukfa(uint32_t n_variables, uint32_t n_observers);
 
     // MODEL FUNCTIONS
     /// \brief Predicts a new state by transitioning from a prior state.
@@ -92,14 +92,14 @@ private:
 
     // Hide base class protected members.
     // NOTE: State variable and covariance access is still protected.
-    using base_t::n_x;
-    using base_t::n_z;
-    using base_t::z;
-    using base_t::S;
-    using base_t::C;
-    using base_t::t_xx;
-    using base_t::has_observations;
-    using base_t::masked_kalman_update;
+    using base::n_x;
+    using base::n_z;
+    using base::z;
+    using base::S;
+    using base::C;
+    using base::t_xx;
+    using base::has_observations;
+    using base::masked_kalman_update;
 };
 
 }

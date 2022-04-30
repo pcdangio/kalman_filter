@@ -3,49 +3,49 @@
 using namespace kalman_filter;
 
 // CONSTRUCTORS
-ukfa_t::ukfa_t(uint32_t n_variables, uint32_t n_observers)
-    : base_t(n_variables, n_observers)
+ukfa::ukfa(uint32_t n_variables, uint32_t n_observers)
+    : base(n_variables, n_observers)
 {
     // Store augmented dimension sizes.
-    ukfa_t::n_a = ukfa_t::n_x + ukfa_t::n_x + ukfa_t::n_z;
-    ukfa_t::n_s = 1 + 2*ukfa_t::n_a;
+    ukfa::n_a = ukfa::n_x + ukfa::n_x + ukfa::n_z;
+    ukfa::n_s = 1 + 2*ukfa::n_a;
 
     // Allocate weight vector.
-    ukfa_t::wj.setZero(ukfa_t::n_s);
+    ukfa::wj.setZero(ukfa::n_s);
 
     // Allocate prediction components.
-    ukfa_t::Xp.setZero(ukfa_t::n_x, ukfa_t::n_x);
-    ukfa_t::Xq.setZero(ukfa_t::n_x, ukfa_t::n_x);
-    ukfa_t::X.setZero(ukfa_t::n_x, ukfa_t::n_s);
-    ukfa_t::dX.setZero(ukfa_t::n_x, ukfa_t::n_s);
+    ukfa::Xp.setZero(ukfa::n_x, ukfa::n_x);
+    ukfa::Xq.setZero(ukfa::n_x, ukfa::n_x);
+    ukfa::X.setZero(ukfa::n_x, ukfa::n_s);
+    ukfa::dX.setZero(ukfa::n_x, ukfa::n_s);
 
     // Allocate update components.
-    ukfa_t::Xr.setZero(ukfa_t::n_z, ukfa_t::n_z);
-    ukfa_t::Z.setZero(ukfa_t::n_z, ukfa_t::n_s);
+    ukfa::Xr.setZero(ukfa::n_z, ukfa::n_z);
+    ukfa::Z.setZero(ukfa::n_z, ukfa::n_s);
 
     // Allocate interface components.
-    ukfa_t::i_xp.setZero(ukfa_t::n_x);
-    ukfa_t::i_x.setZero(ukfa_t::n_x);
-    ukfa_t::i_q.setZero(ukfa_t::n_x);
-    ukfa_t::i_r.setZero(ukfa_t::n_z);
-    ukfa_t::i_z.setZero(ukfa_t::n_z);
+    ukfa::i_xp.setZero(ukfa::n_x);
+    ukfa::i_x.setZero(ukfa::n_x);
+    ukfa::i_q.setZero(ukfa::n_x);
+    ukfa::i_r.setZero(ukfa::n_z);
+    ukfa::i_z.setZero(ukfa::n_z);
 
     // Allocate temporaries.
-    ukfa_t::t_xs.setZero(ukfa_t::n_x, ukfa_t::n_s);
-    ukfa_t::t_zs.setZero(ukfa_t::n_z, ukfa_t::n_s);
+    ukfa::t_xs.setZero(ukfa::n_x, ukfa::n_s);
+    ukfa::t_zs.setZero(ukfa::n_z, ukfa::n_s);
 
     // Set default parameters.
-    ukfa_t::wo = 0.1;
+    ukfa::wo = 0.1;
 }
 
 // FILTER METHODS
-void ukfa_t::iterate()
+void ukfa::iterate()
 {
     // ---------- STEP 1: PREPARATION ----------
 
     // Calculate weight vector for mean and covariance averaging.
-    ukfa_t::wj.fill((1.0 - ukfa_t::wo)/(2.0 * static_cast<double>(ukfa_t::n_x)));
-    ukfa_t::wj[0] = ukfa_t::wo;
+    ukfa::wj.fill((1.0 - ukfa::wo)/(2.0 * static_cast<double>(ukfa::n_x)));
+    ukfa::wj[0] = ukfa::wo;
 
     // ---------- STEP 2: PREDICT ----------
 
@@ -60,40 +60,40 @@ void ukfa_t::iterate()
     // y*sqrt(R) stored in Xr.
 
     // Calculate square root of P using Cholseky Decomposition
-    ukfa_t::llt.compute(ukfa_t::P);
+    ukfa::llt.compute(ukfa::P);
     // Check if calculation succeeded (positive semi definite)
-    if(ukfa_t::llt.info() != Eigen::ComputationInfo::Success)
+    if(ukfa::llt.info() != Eigen::ComputationInfo::Success)
     {
         throw std::runtime_error("covariance matrix P is not positive semi definite");
     }
     // Fill +sqrt(P) block of Xp.
-    ukfa_t::Xp = ukfa_t::llt.matrixL();
+    ukfa::Xp = ukfa::llt.matrixL();
     // Apply sqrt(n+lambda) to entire matrix.
-    ukfa_t::Xp *= std::sqrt(static_cast<double>(ukfa_t::n_x) / (1.0 - ukfa_t::wo));
+    ukfa::Xp *= std::sqrt(static_cast<double>(ukfa::n_x) / (1.0 - ukfa::wo));
 
     // Calculate square root of Q using Cholseky Decomposition.
-    ukfa_t::llt.compute(ukfa_t::Q);
+    ukfa::llt.compute(ukfa::Q);
     // Check if calculation succeeded (positive semi definite)
-    if(ukfa_t::llt.info() != Eigen::ComputationInfo::Success)
+    if(ukfa::llt.info() != Eigen::ComputationInfo::Success)
     {
         throw std::runtime_error("covariance matrix Q is not positive semi definite");
     }
     // Fill +sqrt(Q) block of Xq.
-    ukfa_t::Xq = ukfa_t::llt.matrixL();
+    ukfa::Xq = ukfa::llt.matrixL();
     // Apply sqrt(n+lambda) to entire matrix.
-    ukfa_t::Xq *= std::sqrt(static_cast<double>(ukfa_t::n_x) / (1.0 - ukfa_t::wo));
+    ukfa::Xq *= std::sqrt(static_cast<double>(ukfa::n_x) / (1.0 - ukfa::wo));
 
     // Calculate square root of R using Cholseky Decomposition.
-    ukfa_t::llt.compute(ukfa_t::R);
+    ukfa::llt.compute(ukfa::R);
     // Check if calculation succeeded (positive semi definite)
-    if(ukfa_t::llt.info() != Eigen::ComputationInfo::Success)
+    if(ukfa::llt.info() != Eigen::ComputationInfo::Success)
     {
         throw std::runtime_error("covariance matrix R is not positive semi definite");
     }
     // Fill +sqrt(R) block of Xr.
-    ukfa_t::Xr = ukfa_t::llt.matrixL();
+    ukfa::Xr = ukfa::llt.matrixL();
     // Apply sqrt(n+lambda) to entire matrix.
-    ukfa_t::Xr *= std::sqrt(static_cast<double>(ukfa_t::n_x) / (1.0 - ukfa_t::wo));
+    ukfa::Xr *= std::sqrt(static_cast<double>(ukfa::n_x) / (1.0 - ukfa::wo));
 
     // Calculate X by passing sigma points through the transition function.
 
@@ -102,165 +102,165 @@ void ukfa_t::iterate()
 
     // Pass first set of sigma points, which is just the mean.
     // Populate interface vectors.
-    ukfa_t::i_xp = ukfa_t::x;
-    ukfa_t::i_q.setZero(ukfa_t::n_x);
-    ukfa_t::i_x.setZero(ukfa_t::n_x);
+    ukfa::i_xp = ukfa::x;
+    ukfa::i_q.setZero(ukfa::n_x);
+    ukfa::i_x.setZero(ukfa::n_x);
     // Run transition function.
-    state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
+    state_transition(ukfa::i_xp, ukfa::i_q, ukfa::i_x);
     // Capture output into X.
-    ukfa_t::X.col(s++) = ukfa_t::i_x;
+    ukfa::X.col(s++) = ukfa::i_x;
 
     // Pass second set of sigma points, which injects Xp.
-    for(uint32_t j = 0; j < ukfa_t::n_x; ++j)
+    for(uint32_t j = 0; j < ukfa::n_x; ++j)
     {
         // mean PLUS y*sqrt(P)
         // Populate interface vectors.
-        ukfa_t::i_xp = ukfa_t::x + ukfa_t::Xp.col(j);
-        ukfa_t::i_q.setZero(ukfa_t::n_x);
-        ukfa_t::i_x.setZero(ukfa_t::n_x);
+        ukfa::i_xp = ukfa::x + ukfa::Xp.col(j);
+        ukfa::i_q.setZero(ukfa::n_x);
+        ukfa::i_x.setZero(ukfa::n_x);
         // Run transition function.
-        state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
+        state_transition(ukfa::i_xp, ukfa::i_q, ukfa::i_x);
         // Capture output into X.
-        ukfa_t::X.col(s++) = ukfa_t::i_x;
+        ukfa::X.col(s++) = ukfa::i_x;
     }
-    for(uint32_t j = 0; j < ukfa_t::n_x; ++j)
+    for(uint32_t j = 0; j < ukfa::n_x; ++j)
     {
         // mean MINUS y*sqrt(P)
         // Populate interface vectors.
-        ukfa_t::i_xp = ukfa_t::x - ukfa_t::Xp.col(j);
-        ukfa_t::i_q.setZero(ukfa_t::n_x);
-        ukfa_t::i_x.setZero(ukfa_t::n_x);
+        ukfa::i_xp = ukfa::x - ukfa::Xp.col(j);
+        ukfa::i_q.setZero(ukfa::n_x);
+        ukfa::i_x.setZero(ukfa::n_x);
         // Run transition function.
-        state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
+        state_transition(ukfa::i_xp, ukfa::i_q, ukfa::i_x);
         // Capture output into X.
-        ukfa_t::X.col(s++) = ukfa_t::i_x;
+        ukfa::X.col(s++) = ukfa::i_x;
     }
 
     // Pass third set of sigma points, which injects Xq.
-    for(uint32_t j = 0; j < ukfa_t::n_x; ++j)
+    for(uint32_t j = 0; j < ukfa::n_x; ++j)
     {
         // mean PLUS y*sqrt(Q)
         // Populate interface vectors.
-        ukfa_t::i_xp = ukfa_t::x;
-        ukfa_t::i_q = ukfa_t::Xq.col(j);
-        ukfa_t::i_x.setZero(ukfa_t::n_x);
+        ukfa::i_xp = ukfa::x;
+        ukfa::i_q = ukfa::Xq.col(j);
+        ukfa::i_x.setZero(ukfa::n_x);
         // Run transition function.
-        state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
+        state_transition(ukfa::i_xp, ukfa::i_q, ukfa::i_x);
         // Capture output into X.
-        ukfa_t::X.col(s++) = ukfa_t::i_x;
+        ukfa::X.col(s++) = ukfa::i_x;
     }
-    for(uint32_t j = 0; j < ukfa_t::n_x; ++j)
+    for(uint32_t j = 0; j < ukfa::n_x; ++j)
     {  
         // mean MINUS y*sqrt(Q)
         // Populate interface vectors.
-        ukfa_t::i_xp = ukfa_t::x;
-        ukfa_t::i_q = -ukfa_t::Xq.col(j);
-        ukfa_t::i_x.setZero(ukfa_t::n_x);
+        ukfa::i_xp = ukfa::x;
+        ukfa::i_q = -ukfa::Xq.col(j);
+        ukfa::i_x.setZero(ukfa::n_x);
         // Run transition function.
-        state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
+        state_transition(ukfa::i_xp, ukfa::i_q, ukfa::i_x);
         // Capture output into X.
-        ukfa_t::X.col(s++) = ukfa_t::i_x;
+        ukfa::X.col(s++) = ukfa::i_x;
     }
 
     // Pass fourth set of sigma points, which injects Xr.
     // R has no effect on the transition function, so the output sigma matrix
     // just has extra copies of the mean at the end.
-    for(;s < ukfa_t::n_s; ++s)
+    for(;s < ukfa::n_s; ++s)
     {
-        ukfa_t::X.col(s) = ukfa_t::X.col(0);
+        ukfa::X.col(s) = ukfa::X.col(0);
     }
 
     // Calculate predicted state mean and covariance.
     
     // Predicted state mean is a weighted average: sum(wm.*X) over all sigma points.
     // Can be calculated via matrix multiplication with wm vector.
-    ukfa_t::x.noalias() = ukfa_t::X * ukfa_t::wj;
+    ukfa::x.noalias() = ukfa::X * ukfa::wj;
 
     // Predicted state covariance is a weighted average: sum(wc.*(X-x)(X-x)') over all sigma points.
     // This can be done more efficiently (speed & code) using (X-x)*wc*(X-x)', where wc is formed into a diagonal matrix.
-    ukfa_t::dX = ukfa_t::X - ukfa_t::x.replicate(1, ukfa_t::n_s);
-    ukfa_t::t_xs.noalias() = ukfa_t::dX * ukfa_t::wj.asDiagonal();
-    ukfa_t::P.noalias() = ukfa_t::t_xs * ukfa_t::dX.transpose();
+    ukfa::dX = ukfa::X - ukfa::x.replicate(1, ukfa::n_s);
+    ukfa::t_xs.noalias() = ukfa::dX * ukfa::wj.asDiagonal();
+    ukfa::P.noalias() = ukfa::t_xs * ukfa::dX.transpose();
 
     // Log predicted state.
-    ukfa_t::log_predicted_state();
+    ukfa::log_predicted_state();
 
     // ---------- STEP 3: UPDATE ----------
     
     // Check if update is necessary.
-    if(ukfa_t::has_observations())
+    if(ukfa::has_observations())
     {
         // Calculate Z by passing calculated X and Sr.
 
         // Pass the x/Xp/Xq portion of X through.
-        for(s = 0; s < 1 + 4 * ukfa_t::n_x; ++s)
+        for(s = 0; s < 1 + 4 * ukfa::n_x; ++s)
         {
             // Populate interface vectors.
-            ukfa_t::i_x = ukfa_t::X.col(s);
-            ukfa_t::i_r.setZero(ukfa_t::n_z);
-            ukfa_t::i_z.setZero(ukfa_t::n_z);
+            ukfa::i_x = ukfa::X.col(s);
+            ukfa::i_r.setZero(ukfa::n_z);
+            ukfa::i_z.setZero(ukfa::n_z);
             // Run observation function.
-            observation(ukfa_t::i_x, ukfa_t::i_r, ukfa_t::i_z);
+            observation(ukfa::i_x, ukfa::i_r, ukfa::i_z);
             // Capture output into Z.
-            ukfa_t::Z.col(s) = ukfa_t::i_z;
+            ukfa::Z.col(s) = ukfa::i_z;
         }
 
         // Pass Sr through on top of the back of X.
-        for(uint32_t j = 0; j < ukfa_t::n_z; ++j)
+        for(uint32_t j = 0; j < ukfa::n_z; ++j)
         {
             // mean PLUS y*sqrt(R)
             // Populate interface vectors.
-            ukfa_t::i_x = ukfa_t::X.col(s);
-            ukfa_t::i_r = ukfa_t::Xr.col(j);
-            ukfa_t::i_z.setZero(ukfa_t::n_z);
+            ukfa::i_x = ukfa::X.col(s);
+            ukfa::i_r = ukfa::Xr.col(j);
+            ukfa::i_z.setZero(ukfa::n_z);
             // Run observation function.
-            observation(ukfa_t::i_x, ukfa_t::i_r, ukfa_t::i_z);
+            observation(ukfa::i_x, ukfa::i_r, ukfa::i_z);
             // Capture output into Z.
-            ukfa_t::Z.col(s++) = ukfa_t::i_z;
+            ukfa::Z.col(s++) = ukfa::i_z;
         }
-        for(uint32_t j = 0; j < ukfa_t::n_z; ++j)
+        for(uint32_t j = 0; j < ukfa::n_z; ++j)
         {
             // mean MINUS y*sqrt(R)
             // Populate interface vectors.
-            ukfa_t::i_x = ukfa_t::X.col(s);
-            ukfa_t::i_r = -ukfa_t::Xr.col(j);
-            ukfa_t::i_z.setZero(ukfa_t::n_z);
+            ukfa::i_x = ukfa::X.col(s);
+            ukfa::i_r = -ukfa::Xr.col(j);
+            ukfa::i_z.setZero(ukfa::n_z);
             // Run observation function.
-            observation(ukfa_t::i_x, ukfa_t::i_r, ukfa_t::i_z);
+            observation(ukfa::i_x, ukfa::i_r, ukfa::i_z);
             // Capture output into Z.
-            ukfa_t::Z.col(s++) = ukfa_t::i_z;
+            ukfa::Z.col(s++) = ukfa::i_z;
         }
 
         // Calculate predicted observation mean and covariance, as well as cross covariance.
         
         // Predicted observation mean is a weighted average: sum(wm.*Z) over all sigma points.
         // Can be calculated via matrix multiplication with wm vector.
-        ukfa_t::z.noalias() = ukfa_t::Z * ukfa_t::wj;
+        ukfa::z.noalias() = ukfa::Z * ukfa::wj;
 
         // Log observations.
-        ukfa_t::log_observations();
+        ukfa::log_observations();
 
         // Predicted observation covariance is a weighted average: sum(wc.*(Z-z)(Z-z)') over all sigma points.
         // This can be done more efficiently (speed & code) using (Z-z)*wc*(Z-z)', where wc is formed into a diagonal matrix.
         // Calculate Z-z in place on Z as it's not needed afterwards.
-        ukfa_t::Z -= ukfa_t::z.replicate(1, ukfa_t::n_s);
-        ukfa_t::t_zs.noalias() = ukfa_t::Z * ukfa_t::wj.asDiagonal();
-        ukfa_t::S.noalias() = ukfa_t::t_zs * ukfa_t::Z.transpose();
+        ukfa::Z -= ukfa::z.replicate(1, ukfa::n_s);
+        ukfa::t_zs.noalias() = ukfa::Z * ukfa::wj.asDiagonal();
+        ukfa::S.noalias() = ukfa::t_zs * ukfa::Z.transpose();
 
         // Predicted state/observation cross covariance is a weighted average: sum(wc.*(X-x)(Z-z)') over all sigma points.
         // This can be done more efficiently (speed & code) using (X-x)*wc*(Z-z)', where wc is formed into a diagonal matrix.
-        // Recall that (X-x)*wc is currently stored in ukfa_t::t_xs, and Z-z is stored in Z.
-        ukfa_t::C.noalias() = ukfa_t::t_xs * ukfa_t::Z.transpose();
+        // Recall that (X-x)*wc is currently stored in ukfa::t_xs, and Z-z is stored in Z.
+        ukfa::C.noalias() = ukfa::t_xs * ukfa::Z.transpose();
 
         // Run masked Kalman update.
-        ukfa_t::masked_kalman_update();
+        ukfa::masked_kalman_update();
     }
     else
     {
         // Log empty observations.
-        ukfa_t::log_observations(true);
+        ukfa::log_observations(true);
     }
 
     // Log estimated state.
-    ukfa_t::log_estimated_state();    
+    ukfa::log_estimated_state();    
 }

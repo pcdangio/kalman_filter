@@ -3,89 +3,89 @@
 using namespace kalman_filter;
 
 // CONSTRUCTORS
-kf_t::kf_t(uint32_t n_variables, uint32_t n_inputs, uint32_t n_observers)
-    : base_t(n_variables, n_observers)
+kf::kf(uint32_t n_variables, uint32_t n_inputs, uint32_t n_observers)
+    : base(n_variables, n_observers)
 {
     // Store dimensions.
-    kf_t::n_u = n_inputs;
+    kf::n_u = n_inputs;
 
     // Initialize model matrices.
-    kf_t::A.setIdentity(kf_t::n_x, kf_t::n_x);
-    kf_t::B.setZero(kf_t::n_x, kf_t::n_u);
-    kf_t::H.setZero(kf_t::n_z, kf_t::n_x);
+    kf::A.setIdentity(kf::n_x, kf::n_x);
+    kf::B.setZero(kf::n_x, kf::n_u);
+    kf::H.setZero(kf::n_z, kf::n_x);
 
     // Initialize input vector.
-    kf_t::u.setZero(kf_t::n_u);
+    kf::u.setZero(kf::n_u);
 
     // Initialize temporaries.
-    kf_t::t_x.setZero(kf_t::n_x);
-    kf_t::t_xx.setZero(kf_t::n_x, kf_t::n_x);
-    kf_t::t_zx.setZero(kf_t::n_z, kf_t::n_x);
+    kf::t_x.setZero(kf::n_x);
+    kf::t_xx.setZero(kf::n_x, kf::n_x);
+    kf::t_zx.setZero(kf::n_z, kf::n_x);
 }
 
 // FILTER METHODS
-void kf_t::iterate()
+void kf::iterate()
 {
     // ---------- STEP 1: PREDICT ----------
 
     // Predict state.
-    kf_t::t_x.noalias() = kf_t::A * kf_t::x;
-    kf_t::x.noalias() = kf_t::B * kf_t::u;
-    kf_t::x += kf_t::t_x;
+    kf::t_x.noalias() = kf::A * kf::x;
+    kf::x.noalias() = kf::B * kf::u;
+    kf::x += kf::t_x;
 
     // Log predicted state.
-    kf_t::log_predicted_state();
+    kf::log_predicted_state();
 
     // Predict covariance.
-    kf_t::t_xx.noalias() = kf_t::A * kf_t::P;
-    kf_t::P.noalias() = kf_t::t_xx * kf_t::A.transpose();
-    kf_t::P += kf_t::Q;
+    kf::t_xx.noalias() = kf::A * kf::P;
+    kf::P.noalias() = kf::t_xx * kf::A.transpose();
+    kf::P += kf::Q;
 
     // ---------- STEP 2: UPDATE ----------
 
     // Check if update is necessary.
-    if(kf_t::has_observations())
+    if(kf::has_observations())
     {
         // Calculate predicted observation.
-        kf_t::z.noalias() = kf_t::H * kf_t::x;
+        kf::z.noalias() = kf::H * kf::x;
 
         // Log observations.
-        kf_t::log_observations();
+        kf::log_observations();
         
         // Calculate predicted observation covariance.
-        kf_t::t_zx.noalias() = kf_t::H * kf_t::P;
-        kf_t::S.noalias() = kf_t::t_zx * kf_t::H.transpose();
-        kf_t::S += kf_t::R;
+        kf::t_zx.noalias() = kf::H * kf::P;
+        kf::S.noalias() = kf::t_zx * kf::H.transpose();
+        kf::S += kf::R;
 
         // Calculate predicted state/observation cross covariance.
-        kf_t::C.noalias() = kf_t::P * kf_t::H.transpose();
+        kf::C.noalias() = kf::P * kf::H.transpose();
 
         // Perform masked kalman update.
-        kf_t::masked_kalman_update();
+        kf::masked_kalman_update();
     }
     else
     {
         // Log empty observations.
-        kf_t::log_observations(true);
+        kf::log_observations(true);
     }
 
     // Log estimated state.
-    kf_t::log_estimated_state();
+    kf::log_estimated_state();
 }
-void kf_t::new_input(uint32_t input_index, double_t input)
+void kf::new_input(uint32_t input_index, double_t input)
 {
     // Verify index exists.
-    if(!(input_index < kf_t::n_u))
+    if(!(input_index < kf::n_u))
     {
         throw std::runtime_error("failed to set new input (input_index out of range)");
     }
 
     // Store input.
-    kf_t::u(input_index) = input;
+    kf::u(input_index) = input;
 }
 
 // ACCESS
-uint32_t kf_t::n_inputs() const
+uint32_t kf::n_inputs() const
 {
-    return kf_t::n_u;
+    return kf::n_u;
 }
