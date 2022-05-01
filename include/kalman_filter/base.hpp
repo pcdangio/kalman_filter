@@ -12,15 +12,15 @@
 namespace kalman_filter {
 
 /// \brief Provides base functionality for all Kalman Filter object types.
-class base
+class base_t
 {
 public:
     // CONSTRUCTORS
     /// \brief Instantiates a new base object.
     /// \param n_variables The number of variables in the state vector.
     /// \param n_observers The number of state observers.
-    base(uint32_t n_variables, uint32_t n_observers);
-    ~base();
+    base_t(uint32_t n_variables, uint32_t n_observers);
+    ~base_t();
 
     // FILTER METHODS
     /// \brief Predicts a new state and performs update corrections with available observations.

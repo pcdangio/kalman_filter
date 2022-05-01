@@ -9,15 +9,15 @@ namespace kalman_filter {
 
 /// \brief An Unscented Kalman Filter (UKF)
 /// \details The UKF can perform nonlinear state estimation with additive noise.
-class ukf
-    : public base
+class ukf_t
+    : public base_t
 {
 public:
     // CONSTRUCTORS
     /// \brief Instantiates a new ukf object.
     /// \param n_variables The number of variables in the state vector.
     /// \param n_observers The number of state observers.
-    ukf(uint32_t n_variables, uint32_t n_observers);
+    ukf_t(uint32_t n_variables, uint32_t n_observers);
 
     // MODEL FUNCTIONS
     /// \brief Predicts a new state by transitioning from a prior state.
@@ -74,14 +74,14 @@ private:
 
     // Hide base class protected members.
     // NOTE: State variable and covariance access is still protected.
-    using base::n_x;
-    using base::n_z;
-    using base::z;
-    using base::S;
-    using base::C;
-    using base::t_xx;
-    using base::has_observations;
-    using base::masked_kalman_update;
+    using base_t::n_x;
+    using base_t::n_z;
+    using base_t::z;
+    using base_t::S;
+    using base_t::C;
+    using base_t::t_xx;
+    using base_t::has_observations;
+    using base_t::masked_kalman_update;
 };
 
 }

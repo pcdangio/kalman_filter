@@ -9,8 +9,8 @@ namespace kalman_filter {
 
 /// \brief A Kalman Filter (KF)
 /// \details The KF can perform linear state estimation with additive noise.
-class kf
-    : public base
+class kf_t
+    : public base_t
 {
 public:
     // CONSTRUCTORS
@@ -18,7 +18,7 @@ public:
     /// \param n_variables The number of variables in the state vector.
     /// \param n_inputs The number of inputs in the state model.
     /// \param n_observers The number of state observers.
-    kf(uint32_t n_variables, uint32_t n_inputs, uint32_t n_observers);
+    kf_t(uint32_t n_variables, uint32_t n_inputs, uint32_t n_observers);
 
     // FILTER METHODS
     void iterate() override;
@@ -54,14 +54,14 @@ private:
 
     // Hide base class protected members.
     // NOTE: State variable and covariance access is still protected.
-    using base::n_x;
-    using base::n_z;
-    using base::z;
-    using base::S;
-    using base::C;
-    using base::t_xx;
-    using base::has_observations;
-    using base::masked_kalman_update;
+    using base_t::n_x;
+    using base_t::n_z;
+    using base_t::z;
+    using base_t::S;
+    using base_t::C;
+    using base_t::t_xx;
+    using base_t::has_observations;
+    using base_t::masked_kalman_update;
 };
 
 }
