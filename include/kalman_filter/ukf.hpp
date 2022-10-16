@@ -24,12 +24,12 @@ public:
     /// \param xp The prior state to transition from.
     /// \param x (OUTPUT) The predicted new state.
     /// \note This function must not make changes to any external object.
-    virtual void state_transition(const Eigen::VectorXd& xp, Eigen::VectorXd& x) const = 0;
+    virtual void state_transition(const Eigen::Ref<const Eigen::VectorXd>& xp, Eigen::Ref<Eigen::VectorXd> x) const = 0;
     /// \brief Predicts an observation from a state.
     /// \param x The state to predict an observation from.
     /// \param z (OUTPUT) The predicted observation.
     /// \note This function must not make changes to any external object.
-    virtual void observation(const Eigen::VectorXd& x, Eigen::VectorXd& z) const = 0;
+    virtual void observation(const Eigen::Ref<const Eigen::VectorXd>& x, Eigen::Ref<Eigen::VectorXd> z) const = 0;
 
     // FILTER METHODS
     void iterate() override;
@@ -49,18 +49,12 @@ private:
     Eigen::VectorXd wj;
 
     // STORAGE: SIGMA
+    /// \brief The generated variable sigma matrix.
+    Eigen::MatrixXd Xs;
     /// \brief The evaluated variable sigma matrix.
     Eigen::MatrixXd X;
     /// \brief The evaluated observation sigma matrix.
     Eigen::MatrixXd Z;
-
-    // STORAGE: INTERFACES
-    /// \brief An interface to the prior state vector.
-    Eigen::VectorXd i_xp;
-    /// \brief An interface to the current state vector.
-    Eigen::VectorXd i_x;
-    /// \brief An interface to the predicted observation vector.
-    Eigen::VectorXd i_z;
 
     // STORAGE: TEMPORARIES
     /// \brief A temporary working matrix of size x,s.

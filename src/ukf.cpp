@@ -13,13 +13,9 @@ ukf_t::ukf_t(uint32_t n_variables, uint32_t n_observers)
     ukf_t::wj.setZero(ukf_t::n_s);
 
     // Allocate sigma matrices
+    ukf_t::Xs.setZero(ukf_t::n_x, ukf_t::n_s);
     ukf_t::X.setZero(ukf_t::n_x, ukf_t::n_s);
     ukf_t::Z.setZero(ukf_t::n_z, ukf_t::n_s);
-
-    // Allocate interface components.
-    ukf_t::i_xp.setZero(ukf_t::n_x);
-    ukf_t::i_x.setZero(ukf_t::n_x);
-    ukf_t::i_z.setZero(ukf_t::n_z);
 
     // Allocate temporaries.
     ukf_t::t_xs.setZero(ukf_t::n_x, ukf_t::n_s);
@@ -30,6 +26,7 @@ ukf_t::ukf_t(uint32_t n_variables, uint32_t n_observers)
 }
 
 // FILTER METHODS
+#include <iostream>
 void ukf_t::iterate()
 {
     // ---------- STEP 1: PREPARATION ----------
@@ -46,33 +43,36 @@ void ukf_t::iterate()
     // Check if calculation succeeded (positive semi definite)
     if(ukf_t::llt.info() != Eigen::ComputationInfo::Success)
     {
+        std::cout << ukf_t::P << std::endl;
         throw std::runtime_error("covariance matrix P is not positive semi definite (predict)");
     }
-    // Reset first column of X.
-    ukf_t::X.col(0).setZero();
-    // Fill X with +sqrt(P)
-    ukf_t::X.block(0,1,ukf_t::n_x,ukf_t::n_x) = ukf_t::llt.matrixL();
-    // Fill X with -sqrt(P)
-    ukf_t::X.block(0,1+ukf_t::n_x,ukf_t::n_x,ukf_t::n_x) = -1.0 * ukf_t::X.block(0,1,ukf_t::n_x,ukf_t::n_x);
+    // Reset first column of Xs.
+    ukf_t::Xs.col(0).setZero();
+    // Fill Xs with +sqrt(P)
+    ukf_t::Xs.block(0,1,ukf_t::n_x,ukf_t::n_x) = ukf_t::llt.matrixL();
+    // Fill Xs with -sqrt(P)
+    ukf_t::Xs.block(0,1+ukf_t::n_x,ukf_t::n_x,ukf_t::n_x) = -1.0 * ukf_t::Xs.block(0,1,ukf_t::n_x,ukf_t::n_x);
     // Apply sqrt(n+lambda) to entire matrix.
-    ukf_t::X *= std::sqrt(static_cast<double>(ukf_t::n_x) / (1.0 - ukf_t::wo));
+    ukf_t::Xs *= std::sqrt(static_cast<double>(ukf_t::n_x) / (1.0 - ukf_t::wo));
     // Add mean to entire matrix.
-    ukf_t::X += ukf_t::x.replicate(1,ukf_t::n_s);
+    ukf_t::Xs += ukf_t::x.replicate(1,ukf_t::n_s);
 
-    // Pass previous X through state transition function.
+    // Perform state transition.
+    // Reset X output matrix.
+    ukf_t::X.setZero();
+    // Pass Xs through state transition function.
     for(uint32_t s = 0; s < ukf_t::n_s; ++s)
     {
-        // Populate interface vector.
-        ukf_t::i_xp = ukf_t::X.col(s);
-        ukf_t::i_x.setZero();
+        // Normalize prior state vector.
+        ukf_t::normalize_state(ukf_t::Xs.col(s));
         // Evaluate state transition.
-        state_transition(ukf_t::i_xp, ukf_t::i_x);
-        // Store result back in X.
-        ukf_t::X.col(s) = ukf_t::i_x;
+        state_transition(ukf_t::Xs.col(s), ukf_t::X.col(s));
     }
 
     // Calculate predicted state mean.
     ukf_t::x.noalias() = ukf_t::X * ukf_t::wj;
+    // Normalize predicted state mean.
+    ukf_t::normalize_state(ukf_t::x);
 
     // Calculate predicted state covariance.
     ukf_t::X -= ukf_t::x.replicate(1, ukf_t::n_s);
@@ -94,29 +94,30 @@ void ukf_t::iterate()
         // Check if calculation succeeded (positive semi definite)
         if(ukf_t::llt.info() != Eigen::ComputationInfo::Success)
         {
+            std::cout << ukf_t::P << std::endl;
             throw std::runtime_error("covariance matrix P is not positive semi definite (update)");
         }
-        // Reset first column of X.
-        ukf_t::X.col(0).setZero();
-        // Fill X with +sqrt(P)
-        ukf_t::X.block(0,1,ukf_t::n_x,ukf_t::n_x) = ukf_t::llt.matrixL();
-        // Fill X with -sqrt(P)
-        ukf_t::X.block(0,1+ukf_t::n_x,ukf_t::n_x,ukf_t::n_x) = -1.0 * ukf_t::X.block(0,1,ukf_t::n_x,ukf_t::n_x);
+        // Reset first column of Xs.
+        ukf_t::Xs.col(0).setZero();
+        // Fill Xs with +sqrt(P)
+        ukf_t::Xs.block(0,1,ukf_t::n_x,ukf_t::n_x) = ukf_t::llt.matrixL();
+        // Fill Xs with -sqrt(P)
+        ukf_t::Xs.block(0,1+ukf_t::n_x,ukf_t::n_x,ukf_t::n_x) = -1.0 * ukf_t::Xs.block(0,1,ukf_t::n_x,ukf_t::n_x);
         // Apply sqrt(n+lambda) to entire matrix.
-        ukf_t::X *= std::sqrt(static_cast<double>(ukf_t::n_x) / (1.0 - ukf_t::wo));
+        ukf_t::Xs *= std::sqrt(static_cast<double>(ukf_t::n_x) / (1.0 - ukf_t::wo));
         // Add mean to entire matrix.
-        ukf_t::X += ukf_t::x.replicate(1,ukf_t::n_s);
+        ukf_t::Xs += ukf_t::x.replicate(1,ukf_t::n_s);
 
-        // Pass predicted X through state transition function.
+        // Calculate observation matrix.
+        // Reset observation matrix.
+        ukf_t::Z.setZero();
+        // Pass sigma points through observation function.
         for(uint32_t s = 0; s < ukf_t::n_s; ++s)
         {
-            // Populate interface vector.
-            ukf_t::i_x = ukf_t::X.col(s);
-            ukf_t::i_z.setZero();
-            // Evaluate state transition.
-            observation(ukf_t::i_x, ukf_t::i_z);
-            // Store result back in X.
-            ukf_t::Z.col(s) = ukf_t::i_z;
+            // Normalize state vector.
+            ukf_t::normalize_state(ukf_t::Xs.col(s));
+            // Pass through observation function.
+            observation(ukf_t::Xs.col(s), ukf_t::Z.col(s));
         }
 
         // Calculate predicted observation mean.
@@ -132,8 +133,8 @@ void ukf_t::iterate()
         ukf_t::S += ukf_t::R;
 
         // Calculate predicted state/observation covariance.
-        ukf_t::X -= ukf_t::x.replicate(1, ukf_t::n_s);
-        ukf_t::t_xs.noalias() = ukf_t::X * ukf_t::wj.asDiagonal();
+        ukf_t::Xs -= ukf_t::x.replicate(1, ukf_t::n_s);
+        ukf_t::t_xs.noalias() = ukf_t::Xs * ukf_t::wj.asDiagonal();
         ukf_t::C.noalias() = ukf_t::t_xs * ukf_t::Z.transpose();
 
         // Run masked Kalman update.
