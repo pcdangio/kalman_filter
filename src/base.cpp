@@ -33,6 +33,10 @@ base_t::~base_t()
 }
 
 // FILTER METHODS
+void base_t::normalize_state(Eigen::Ref<Eigen::VectorXd> state) const
+{
+    // Base method does nothing.
+}
 void base_t::new_observation(uint32_t observer_index, double_t observation)
 {
     // Verify index exists.
@@ -96,6 +100,9 @@ void base_t::masked_kalman_update()
 
     // Update state.
     base_t::x.noalias() += K_m * zd_m;
+
+    // Normalize state.
+    base_t::normalize_state(base_t::x);
 
     // Update covariance.
     // NOTE: Just use internal temporary since it's masked size.

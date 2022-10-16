@@ -103,6 +103,9 @@ protected:
     Eigen::MatrixXd t_xx;
 
     // METHODS
+    /// \brief An optional function for normalizing the state vector during iterations.
+    /// \param state The state vector to normalize.
+    virtual void normalize_state(Eigen::Ref<Eigen::VectorXd> state) const;
     /// \brief Indicates if any observations have been made since the last iteration.
     /// \returns TRUE if new observations exist, otherwise FALSE.
     bool has_observations() const;
