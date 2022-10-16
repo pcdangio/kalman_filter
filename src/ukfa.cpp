@@ -23,14 +23,8 @@ ukfa_t::ukfa_t(uint32_t n_variables, uint32_t n_observers)
     ukfa_t::Xr.setZero(ukfa_t::n_z, ukfa_t::n_z);
     ukfa_t::Z.setZero(ukfa_t::n_z, ukfa_t::n_s);
 
-    // Allocate interface components.
-    ukfa_t::i_xp.setZero(ukfa_t::n_x);
-    ukfa_t::i_x.setZero(ukfa_t::n_x);
-    ukfa_t::i_q.setZero(ukfa_t::n_x);
-    ukfa_t::i_r.setZero(ukfa_t::n_z);
-    ukfa_t::i_z.setZero(ukfa_t::n_z);
-
     // Allocate temporaries.
+    ukfa_t::t_x.setZero(ukfa_t::n_x);
     ukfa_t::t_xs.setZero(ukfa_t::n_x, ukfa_t::n_s);
     ukfa_t::t_zs.setZero(ukfa_t::n_z, ukfa_t::n_s);
 
@@ -97,69 +91,52 @@ void ukfa_t::iterate()
 
     // Calculate X by passing sigma points through the transition function.
 
+    // Reset X to zero.
+    ukfa_t::X.setZero();
+
     // Create sigma column index.
     uint32_t s = 0;
 
-    // Pass first set of sigma points, which is just the mean.
-    // Populate interface vectors.
-    ukfa_t::i_xp = ukfa_t::x;
-    ukfa_t::i_q.setZero(ukfa_t::n_x);
-    ukfa_t::i_x.setZero(ukfa_t::n_x);
-    // Run transition function.
-    state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
-    // Capture output into X.
-    ukfa_t::X.col(s++) = ukfa_t::i_x;
+    // Pass first set of sigma points, which is just the mean (no Xp or Xq)
+    // NOTE: the mean should already be normalized from the prior run.
+    ukfa_t::t_x.setZero();
+    state_transition(ukfa_t::x, ukfa_t::t_x, ukfa_t::X.col(s++));
 
     // Pass second set of sigma points, which injects Xp.
+    // Use temporary matrix to store mean plus y*sqrt(P).
+    ukfa_t::t_xs = ukfa_t::x.replicate(1, ukfa_t::n_s);
+    ukfa_t::t_xs += ukfa_t::Xp;
     for(uint32_t j = 0; j < ukfa_t::n_x; ++j)
     {
         // mean PLUS y*sqrt(P)
-        // Populate interface vectors.
-        ukfa_t::i_xp = ukfa_t::x + ukfa_t::Xp.col(j);
-        ukfa_t::i_q.setZero(ukfa_t::n_x);
-        ukfa_t::i_x.setZero(ukfa_t::n_x);
-        // Run transition function.
-        state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
-        // Capture output into X.
-        ukfa_t::X.col(s++) = ukfa_t::i_x;
+        // Normalize the state.
+        ukfa_t::normalize_state(ukfa_t::t_xs.col(j));
+        // Pass state through transition function and increment s.
+        state_transition(ukfa_t::t_xs.col(j), ukfa_t::t_x, ukfa_t::X.col(s++));
     }
+    // Use temporary matrix to store mean minus y*sqrt(P).
+    ukfa_t::t_xs = ukfa_t::x.replicate(1, ukfa_t::n_s);
+    ukfa_t::t_xs -= ukfa_t::Xp;
     for(uint32_t j = 0; j < ukfa_t::n_x; ++j)
     {
         // mean MINUS y*sqrt(P)
-        // Populate interface vectors.
-        ukfa_t::i_xp = ukfa_t::x - ukfa_t::Xp.col(j);
-        ukfa_t::i_q.setZero(ukfa_t::n_x);
-        ukfa_t::i_x.setZero(ukfa_t::n_x);
-        // Run transition function.
-        state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
-        // Capture output into X.
-        ukfa_t::X.col(s++) = ukfa_t::i_x;
+        // Normalize the state.
+        ukfa_t::normalize_state(ukfa_t::t_xs.col(j));
+        // Pass state through transition function and increment s.
+        state_transition(ukfa_t::t_xs.col(j), ukfa_t::t_x, ukfa_t::X.col(s++));
     }
 
     // Pass third set of sigma points, which injects Xq.
     for(uint32_t j = 0; j < ukfa_t::n_x; ++j)
     {
-        // mean PLUS y*sqrt(Q)
-        // Populate interface vectors.
-        ukfa_t::i_xp = ukfa_t::x;
-        ukfa_t::i_q = ukfa_t::Xq.col(j);
-        ukfa_t::i_x.setZero(ukfa_t::n_x);
-        // Run transition function.
-        state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
-        // Capture output into X.
-        ukfa_t::X.col(s++) = ukfa_t::i_x;
+        // mean AND positive y*sqrt(Q)
+        state_transition(ukfa_t::x, ukfa_t::Xq.col(j), ukfa_t::X.col(s++));
     }
+    ukfa_t::t_xs = -ukfa_t::Xq;
     for(uint32_t j = 0; j < ukfa_t::n_x; ++j)
     {  
-        // mean MINUS y*sqrt(Q)
-        // Populate interface vectors.
-        ukfa_t::i_xp = ukfa_t::x;
-        ukfa_t::i_q = -ukfa_t::Xq.col(j);
-        ukfa_t::i_x.setZero(ukfa_t::n_x);
-        // Run transition function.
-        state_transition(ukfa_t::i_xp, ukfa_t::i_q, ukfa_t::i_x);
-        // Capture output into X.
-        ukfa_t::X.col(s++) = ukfa_t::i_x;
+        // mean AND negative y*sqrt(Q)
+        state_transition(ukfa_t::x, ukfa_t::t_xs.col(j), ukfa_t::X.col(s++));
     }
 
     // Pass fourth set of sigma points, which injects Xr.
@@ -172,9 +149,11 @@ void ukfa_t::iterate()
 
     // Calculate predicted state mean and covariance.
     
-    // Predicted state mean is a weighted average: sum(wm.*X) over all sigma points.
-    // Can be calculated via matrix multiplication with wm vector.
+    // Predicted state mean is a weighted average: sum(wj.*X) over all sigma points.
+    // Can be calculated via matrix multiplication with wj vector.
     ukfa_t::x.noalias() = ukfa_t::X * ukfa_t::wj;
+    // Normalize the state mean.
+    ukfa_t::normalize_state(ukfa_t::x);
 
     // Predicted state covariance is a weighted average: sum(wc.*(X-x)(X-x)') over all sigma points.
     // This can be done more efficiently (speed & code) using (X-x)*wc*(X-x)', where wc is formed into a diagonal matrix.
@@ -191,50 +170,34 @@ void ukfa_t::iterate()
     if(ukfa_t::has_observations())
     {
         // Calculate Z by passing calculated X and Sr.
+        // NOTE: X is already normalized.
+
+        // Reset Z to zeros.
+        ukfa_t::Z.setZero();
 
         // Pass the x/Xp/Xq portion of X through.
         for(s = 0; s < 1 + 4 * ukfa_t::n_x; ++s)
         {
-            // Populate interface vectors.
-            ukfa_t::i_x = ukfa_t::X.col(s);
-            ukfa_t::i_r.setZero(ukfa_t::n_z);
-            ukfa_t::i_z.setZero(ukfa_t::n_z);
-            // Run observation function.
-            observation(ukfa_t::i_x, ukfa_t::i_r, ukfa_t::i_z);
-            // Capture output into Z.
-            ukfa_t::Z.col(s) = ukfa_t::i_z;
+            observation(ukfa_t::X.col(s), ukfa_t::t_x, ukfa_t::Z.col(s));
         }
 
         // Pass Sr through on top of the back of X.
         for(uint32_t j = 0; j < ukfa_t::n_z; ++j)
         {
-            // mean PLUS y*sqrt(R)
-            // Populate interface vectors.
-            ukfa_t::i_x = ukfa_t::X.col(s);
-            ukfa_t::i_r = ukfa_t::Xr.col(j);
-            ukfa_t::i_z.setZero(ukfa_t::n_z);
-            // Run observation function.
-            observation(ukfa_t::i_x, ukfa_t::i_r, ukfa_t::i_z);
-            // Capture output into Z.
-            ukfa_t::Z.col(s++) = ukfa_t::i_z;
+            // mean AND positive y*sqrt(R)
+            observation(ukfa_t::X.col(s), ukfa_t::Xr.col(j), ukfa_t::Z.col(s++));
         }
+        ukfa_t::t_xs = -ukfa_t::Xr;
         for(uint32_t j = 0; j < ukfa_t::n_z; ++j)
         {
-            // mean MINUS y*sqrt(R)
-            // Populate interface vectors.
-            ukfa_t::i_x = ukfa_t::X.col(s);
-            ukfa_t::i_r = -ukfa_t::Xr.col(j);
-            ukfa_t::i_z.setZero(ukfa_t::n_z);
-            // Run observation function.
-            observation(ukfa_t::i_x, ukfa_t::i_r, ukfa_t::i_z);
-            // Capture output into Z.
-            ukfa_t::Z.col(s++) = ukfa_t::i_z;
+            // mean AND negative y*sqrt(R)
+            observation(ukfa_t::X.col(s), ukfa_t::t_xs.col(j), ukfa_t::Z.col(s++));
         }
 
         // Calculate predicted observation mean and covariance, as well as cross covariance.
         
-        // Predicted observation mean is a weighted average: sum(wm.*Z) over all sigma points.
-        // Can be calculated via matrix multiplication with wm vector.
+        // Predicted observation mean is a weighted average: sum(wj.*Z) over all sigma points.
+        // Can be calculated via matrix multiplication with wj vector.
         ukfa_t::z.noalias() = ukfa_t::Z * ukfa_t::wj;
 
         // Log observations.
