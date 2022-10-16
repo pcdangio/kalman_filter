@@ -33,6 +33,9 @@ void kf_t::iterate()
     kf_t::x.noalias() = kf_t::B * kf_t::u;
     kf_t::x += kf_t::t_x;
 
+    // Normalize state.
+    kf_t::normalize_state(kf_t::x);
+
     // Log predicted state.
     kf_t::log_predicted_state();
 
