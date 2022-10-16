@@ -7,11 +7,9 @@ using namespace kalman_filter;
 
 // CONSTRUCTORS
 base_t::base_t(uint32_t n_variables, uint32_t n_observers)
+    : n_x(n_variables),
+      n_z(n_observers)
 {
-    // Store dimension sizes.
-    base_t::n_x = n_variables;
-    base_t::n_z = n_observers;
-
     // Allocate prediction components.
     base_t::x.setZero(base_t::n_x);
     base_t::P.setIdentity(base_t::n_x, base_t::n_x);
@@ -32,11 +30,7 @@ base_t::~base_t()
     base_t::stop_log();
 }
 
-// FILTER METHODS
-void base_t::normalize_state(Eigen::Ref<Eigen::VectorXd> state) const
-{
-    // Base method does nothing.
-}
+// FILTER
 void base_t::new_observation(uint32_t observer_index, double_t observation)
 {
     // Verify index exists.
@@ -141,6 +135,13 @@ void base_t::masked_kalman_update()
 
     // Reset observations.
     base_t::m_observations.clear();
+}
+
+// NORMALIZATION
+void base_t::normalize_state(Eigen::Ref<Eigen::VectorXd> state) const
+{
+    // Base method does nothing.
+    // NOTE: Compiler can optimize this call away since it's an empty function.
 }
 
 // ACCESS

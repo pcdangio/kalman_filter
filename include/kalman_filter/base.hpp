@@ -22,7 +22,7 @@ public:
     base_t(uint32_t n_variables, uint32_t n_observers);
     ~base_t();
 
-    // FILTER METHODS
+    // FILTER
     /// \brief Predicts a new state and performs update corrections with available observations.
     /// \note The iteration rate should be at least as fast as the fastest observer rate.
     virtual void iterate() = 0;
@@ -80,9 +80,9 @@ protected:
     
     // DIMENSIONS
     /// \brief The number of variables being estimated by the system.
-    uint32_t n_x;
+    const uint32_t n_x;
     /// \brief The number of observers.
-    uint32_t n_z;
+    const uint32_t n_z;
 
     // STORAGE: PREDICTION
     /// \brief The variable vector.
@@ -102,16 +102,20 @@ protected:
     /// \brief A temporary of size n_x,n_x.
     Eigen::MatrixXd t_xx;
 
-    // METHODS
-    /// \brief An optional function for normalizing the state vector during iterations.
-    /// \param state The state vector to normalize.
-    virtual void normalize_state(Eigen::Ref<Eigen::VectorXd> state) const;
+    // FILTER
     /// \brief Indicates if any observations have been made since the last iteration.
     /// \returns TRUE if new observations exist, otherwise FALSE.
     bool has_observations() const;
     /// \brief Performs a Kalman update masked by available observations.
     /// \details S and C must be calculated first.
     void masked_kalman_update();
+
+    // NORMALIZATION
+    /// \brief An optional function for normalizing the state vector during iterations.
+    /// \param state The state vector to normalize.
+    virtual void normalize_state(Eigen::Ref<Eigen::VectorXd> state) const;
+
+    // LOGGING
     /// \brief Writes the predicted state to the log file.
     void log_predicted_state();
     /// \brief Writes observations to the log file.
@@ -121,7 +125,7 @@ protected:
     void log_estimated_state();
 
 private:
-    // VARIABLES
+    // OBSERVATIONS
     /// \brief Stores the actual observations made between iterations.
     std::map<uint32_t, double_t> m_observations;
 
