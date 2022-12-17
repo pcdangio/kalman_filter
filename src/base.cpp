@@ -265,8 +265,11 @@ void base_t::log_observations(bool empty)
 {
     if(base_t::m_log_file.is_open())
     {
-        if(empty)
+        // Check if there are any actual observations to be logged.
+        // NOTE: Predicted observations are only calculated if observations are present.
+        if(base_t::m_observations.empty())
         {
+            // Log empty predicted/actual observations quickly.
             for(uint32_t i = 0; i < 2*base_t::n_z; ++i)
             {
                 base_t::m_log_file << ",";
@@ -274,20 +277,30 @@ void base_t::log_observations(bool empty)
         }
         else
         {
-            // Predicted observations.
+            // Log predicted observations.
             for(uint32_t i = 0; i < base_t::n_z; ++i)
             {
                 base_t::m_log_file << base_t::z(i) << ",";
             }
-            // Actual observations.
+
+            // Log actual observations.
+            // Iterate through observation indices.
+            auto observation_entry = base_t::m_observations.begin();
             for(uint32_t i = 0; i < base_t::n_z; ++i)
             {
-                auto observation = base_t::m_observations.find(i);
-                if(observation != base_t::m_observations.end())
+                // Check if entry's observation index matches the current observation index.
+                if(observation_entry != base_t::m_observations.end() && observation_entry->first == i)
                 {
-                    base_t::m_log_file << observation->second;
+                    // Log observation.
+                    base_t::m_log_file << observation_entry->second << ",";
+                    // Increment observation entry.
+                    observation_entry++;
                 }
-                base_t::m_log_file << ",";
+                else
+                {
+                    // Log empty entry.
+                    base_t::m_log_file << ",";
+                }
             }
         }
     }
